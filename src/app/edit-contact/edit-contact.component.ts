@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { ContactsService } from '../contacts/contacts.service';
 
 @Component({
   imports: [CommonModule, ReactiveFormsModule],
@@ -9,24 +10,46 @@ import { ActivatedRoute } from '@angular/router';
   styleUrls: ['./edit-contact.component.css']
 })
 export class EditContactComponent implements OnInit {
-  constructor(private route: ActivatedRoute) { }
+  constructor(private route: ActivatedRoute, 
+    private contactsService: ContactsService, 
+    private router: Router,
+  private fb: FormBuilder) { }
+// Form Controls
+  contactForm = this.fb.nonNullable.group({
+    id: '',
+    firstName: '',
+    lastName: '',
+    dateOfBirth: <Date | null> null,
+    favoritesRanking: <number | null> null,
+    phone: this.fb.nonNullable.group({
+      phoneNumber: '',
+      phoneType: '',
+    }),
+    address: this.fb.nonNullable.group({
+      streetAddress: '',
+      city: '',
+      state: '',
+      postalCode: '',
+      addressType: '',
+    })
 
-  firstName = new FormControl();
-  secondName = new FormControl();
-  dateOfBirth = new FormControl();
-  favoritesRanking = new FormControl();
+  });
 
 
   ngOnInit() {
     const contactId = this.route.snapshot.params['id'];
     if (!contactId) return
+
+    // Fetch contact details using the contactId
+    this.contactsService.getContact(contactId).subscribe(contact => {
+      if (!contact) return;
+      this.contactForm.setValue(contact);    
+    });
   }
 
   saveContact() {
-    console.log('Contact saved');
-    console.log('First Name:', this.firstName.value);
-    console.log('Last Name:', this.secondName.value);
-    console.log('Date of Birth:', this.dateOfBirth.value);
-    console.log('Favorites Ranking:', this.favoritesRanking.value);
-  }
+    this.contactsService.saveContact(this.contactForm.getRawValue()).subscribe({
+      next: () => this.router.navigate(['/contacts'])
+    });
+  }  
 }
